@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 
 /*
@@ -165,13 +164,13 @@ const DAY_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 // ─── PALETTE ─────────────────────────────────────────────────────────────────
 
 const C = {
-  bg:         "#F6F2EB",
+  bg:         "#E4EEF4",
   surface:    "#FFFFFF",
-  surfaceAlt: "#FDFBF7",
-  surfaceDim: "#F0EDE6",
-  border:     "#E8E2D8",
-  borderLight:"#F0EBE2",
-  ink:        "#1A2F44",
+  surfaceAlt: "#F6FAFC",
+  surfaceDim: "#D9E6EF",
+  border:     "#CADAE6",
+  borderLight:"#DCE9F1",
+  ink:        "#1E3A50",
   navy:       "#1E3A56",
   blue:       "#2C6693",
   blueM:      "#4A8DBD",
@@ -186,10 +185,10 @@ const C = {
   doneBg:     "#E6F3EA",
   miss:       "#C4646E",
   missBg:     "#FCECED",
-  t1:         "#1A2F44",
-  t2:         "#4A5E72",
-  t3:         "#8494A5",
-  t4:         "#AAB6C2",
+  t1:         "#1E3A50",
+  t2:         "#506A7D",
+  t3:         "#7A95A8",
+  t4:         "#9BB2C2",
   nateGreen:  "#4E8E60",
   raphBlue:   "#4A8DBD",
 };
@@ -220,15 +219,19 @@ function daysLabel(r) {
   return r.days.map(d => DAY_ABBR[d]).join(" ");
 }
 
-function seeded(seed) {
-  let s = seed;
-  return () => { s=(s*16807)%2147483647; return (s-1)/2147483646; };
+// Robust hash that properly differentiates consecutive days
+function hashDay(year, month, day, salt) {
+  let h = ((year * 374761 + month * 668265 + day * 119281 + (salt || 0)) & 0x7FFFFFFF);
+  h = ((h >> 16) ^ h) * 0x45d9f3b;
+  h = ((h >> 16) ^ h) * 0x45d9f3b;
+  h = (h >> 16) ^ h;
+  return (h & 0x7FFFFFFF) / 0x7FFFFFFF;
 }
 
 function dailyQuote() {
   const d = new Date();
-  const r = seeded(d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()+777);
-  return QUOTES[Math.floor(r()*QUOTES.length)];
+  const r = hashDay(d.getFullYear(), d.getMonth()+1, d.getDate(), 777);
+  return QUOTES[Math.floor(r * QUOTES.length)];
 }
 
 function dailyPrompt(used) {
@@ -238,8 +241,8 @@ function dailyPrompt(used) {
   const pool = REFLECTION_PROMPTS.filter((_,i) => !used.includes(i));
   const src = pool.length > 0 ? pool : REFLECTION_PROMPTS;
   const d = new Date();
-  const r = seeded(d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate());
-  const p = src[Math.floor(r()*src.length)];
+  const r = hashDay(d.getFullYear(), d.getMonth()+1, d.getDate(), 123);
+  const p = src[Math.floor(r * src.length)];
   map[t] = p;
   save("gratitudePromptMap", map);
   return { prompt: p, index: REFLECTION_PROMPTS.indexOf(p) };
@@ -1100,6 +1103,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:FONT.sans, color:C.t1 }}>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
 
       <div style={{ maxWidth:980, margin:"0 auto", padding:"36px 24px 72px" }}>
         {/* Header */}
