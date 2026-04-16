@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 
 /*
@@ -1063,6 +1064,101 @@ function QuoteBar() {
   );
 }
 
+// ─── REFLECTION ARCHIVE ──────────────────────────────────────────────────────
+
+function ReflectionArchive({ gratitudeEntries }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Build sorted list of all entries, most recent first
+  const entries = useMemo(() => {
+    const map = load("gratitudePromptMap") || {};
+    return Object.keys(gratitudeEntries)
+      .filter(key => gratitudeEntries[key])
+      .sort((a, b) => b.localeCompare(a))
+      .map(dateKey => {
+        const [y, m, d] = dateKey.split("-").map(Number);
+        const date = new Date(y, m - 1, d);
+        const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const today = todayKey();
+        const yesterday = (() => { const dt = new Date(); dt.setDate(dt.getDate()-1); return dkey(dt.getFullYear(), dt.getMonth(), dt.getDate()); })();
+        let label;
+        if (dateKey === today) label = "Today";
+        else if (dateKey === yesterday) label = "Yesterday";
+        else label = dayNames[date.getDay()];
+        return {
+          dateKey,
+          label,
+          dateStr: `${d} ${MONTH_SHORT[m-1]} ${y}`,
+          prompt: map[dateKey] || null,
+          entry: gratitudeEntries[dateKey],
+        };
+      });
+  }, [gratitudeEntries]);
+
+  const entryCount = entries.length;
+
+  if (entryCount === 0) return null;
+
+  return (
+    <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+      <button onClick={() => setIsOpen(!isOpen)} style={{
+        display: "flex", alignItems: "center", gap: 10, width: "100%",
+        padding: "16px 24px", border: "none", cursor: "pointer",
+        background: isOpen ? C.surface : C.surfaceAlt,
+        transition: "all 0.2s", textAlign: "left", fontFamily: FONT.sans,
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round">
+          <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
+        </svg>
+        <span style={{ fontSize: 15, fontWeight: 600, color: C.ink, fontFamily: FONT.serif, flex: 1 }}>
+          Reflection archive
+        </span>
+        <span style={{ fontSize: 12, color: C.t4, marginRight: 8 }}>
+          {entryCount} {entryCount === 1 ? "entry" : "entries"}
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.t3} strokeWidth="2.5" strokeLinecap="round"
+          style={{ transition: "transform 0.2s", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div style={{
+          padding: "4px 24px 20px", background: C.surface,
+          maxHeight: 480, overflowY: "auto",
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {entries.map(e => (
+              <div key={e.dateKey} style={{
+                background: C.surfaceAlt, borderRadius: 12,
+                padding: "14px 16px", border: `1px solid ${C.borderLight}`,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 600, fontFamily: FONT.sans,
+                    color: e.label === "Today" ? C.blue : C.t2,
+                  }}>{e.label}</span>
+                  <span style={{ fontSize: 11, color: C.t4 }}>{e.dateStr}</span>
+                </div>
+                {e.prompt && (
+                  <p style={{
+                    fontSize: 12, color: C.t3, margin: "0 0 6px",
+                    fontStyle: "italic", fontFamily: FONT.serif, lineHeight: 1.5,
+                  }}>{e.prompt}</p>
+                )}
+                <p style={{
+                  fontSize: 13, color: C.t1, margin: 0,
+                  lineHeight: 1.65, fontFamily: FONT.sans,
+                }}>{e.entry}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── SHARED STYLES ───────────────────────────────────────────────────────────
 
 const FONT = {
@@ -1105,23 +1201,22 @@ export default function Dashboard() {
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:FONT.sans, color:C.t1 }}>
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
 
-      <div style={{ maxWidth:980, margin:"0 auto", padding:"36px 24px 72px" }}>
+      <div style={{ maxWidth:980, margin:"0 auto", padding:"0 24px 72px" }}>
         {/* Header */}
-        <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", marginBottom:28 }}>
-          <div>
-            <h1 style={{ fontSize:30, fontWeight:600, color:C.ink, margin:0, fontFamily:FONT.serif, letterSpacing:"-0.01em" }}>
-              {greeting}
-            </h1>
-            <p style={{ fontSize:13, color:C.t3, margin:"4px 0 0", fontFamily:FONT.sans }}>
-              {MONTH_NAMES[now.getMonth()]} {now.getDate()}, {now.getFullYear()}
-            </p>
-          </div>
-          <div style={{ fontSize:12, color:C.t4, fontFamily:FONT.sans, textAlign:"right" }}>
-            <span style={{ display:"block", fontWeight:600, color:C.t3 }}>
-              Month {now.getMonth() + 1} of 12
-            </span>
-            <span>{Math.round(((now.getMonth()) / 12) * 100)}% of the year</span>
-          </div>
+        <div style={{
+          background:"linear-gradient(160deg, #2C6693 0%, #5A9EC7 25%, #8EBDD9 45%, #C6DEF0 65%, #F0DCC8 85%, #FBF5EE 100%)",
+          borderRadius:"0 0 20px 20px", padding:"48px 24px 44px", marginBottom:28,
+          textAlign:"center", marginLeft:-24, marginRight:-24,
+        }}>
+          <h1 style={{ fontSize:36, fontWeight:500, color:"#FFFFFF", margin:0, fontFamily:FONT.serif, fontStyle:"italic", letterSpacing:"-0.01em", textShadow:"0 1px 12px rgba(30,58,80,0.18)" }}>
+            {greeting}
+          </h1>
+          <p style={{ fontSize:14, color:"#FFFFFF", margin:"10px 0 0", fontFamily:FONT.sans, fontWeight:400, letterSpacing:"0.06em", textTransform:"uppercase", opacity:0.85 }}>
+            {MONTH_NAMES[now.getMonth()]} {now.getDate()}, {now.getFullYear()}
+          </p>
+          <p style={{ fontSize:12, color:"#FFFFFF", margin:"6px 0 0", fontFamily:FONT.sans, opacity:0.6 }}>
+            Month {now.getMonth() + 1} of 12 · {Math.round(((now.getMonth()) / 12) * 100)}% of the year
+          </p>
         </div>
 
         <QuoteBar />
@@ -1143,6 +1238,10 @@ export default function Dashboard() {
             completions={completions}
             setCompletions={setCompletions}
           />
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          <ReflectionArchive gratitudeEntries={gratitudeEntries} />
         </div>
 
         <TodoSection />
